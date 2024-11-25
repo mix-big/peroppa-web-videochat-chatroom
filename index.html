@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Registration</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      color: #333;
+      text-align: center;
+      padding: 20px;
+    }
+
+    input {
+      width: 80%;
+      max-width: 300px;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #status-message {
+      margin-top: 20px;
+      color: #ff5722;
+    }
+  </style>
+</head>
+<body>
+  <h1>User Registration</h1>
+  <div id="registration-form">
+    <h2>Step 1: Enter Your Email</h2>
+    <input type="email" id="email-input" placeholder="Enter your email">
+    <button id="send-code-button">Send Code</button>
+  </div>
+
+  <div id="verification-form" class="hidden">
+    <h2>Step 2: Enter Verification Code</h2>
+    <input type="text" id="verification-code" placeholder="6-digit code">
+    <button id="verify-button">Verify</button>
+  </div>
+
+  <p id="status-message"></p>
+
+  <script>
+    // 認証コードと状態管理
+    let generatedCode = null;
+
+    // 要素取得
+    const emailInput = document.getElementById("email-input");
+    const sendCodeButton = document.getElementById("send-code-button");
+    const verificationCodeInput = document.getElementById("verification-code");
+    const verifyButton = document.getElementById("verify-button");
+    const registrationForm = document.getElementById("registration-form");
+    const verificationForm = document.getElementById("verification-form");
+    const statusMessage = document.getElementById("status-message");
+
+    // 6桁のランダムコードを生成
+    function generateCode() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    // メール送信（EmailJSを使用）
+    function sendEmailCode(email, code) {
+      emailjs.init("YOUR_USER_ID"); // EmailJSのユーザーIDを設定
+      emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+        user_email: email,
+        verification_code: code,
+      })
+      .then(() => {
+        statusMessage.textContent = "Verification code sent to your email.";
+      })
+      .catch((error) => {
+        statusMessage.textContent = "Failed to send email. Try again.";
+        console.error("Email send error:", error);
+      });
+    }
+
+    // コード送信ボタンの処理
+    sendCodeButton.addEventListener("click", () => {
+      const email = emailInput.value;
+      if (email) {
+        generatedCode = generateCode();
+        sendEmailCode(email, generatedCode);
+
+        // フォーム切り替え
+        registrationForm.classList.add("hidden");
+        verificationForm.classList.remove("hidden");
+      } else {
+        statusMessage.textContent = "Please enter a valid email.";
+      }
+    });
+
+    // コード検証ボタンの処理
+    verifyButton.addEventListener("click", () => {
+      const enteredCode = verificationCodeInput.value;
+      if (enteredCode === generatedCode) {
+        statusMessage.textContent = "Account verified successfully!";
+        verificationForm.classList.add("hidden");
+      } else {
+        statusMessage.textContent = "Invalid code. Please try again.";
+      }
+    });
+  </script>
+
+  <!-- EmailJSライブラリ -->
+  <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+</body>
+</html>
