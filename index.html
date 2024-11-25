@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>User Registration</title>
+  <title>File Upload and Email</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -35,10 +35,6 @@
       background-color: #45a049;
     }
 
-    .hidden {
-      display: none;
-    }
-
     #status-message {
       margin-top: 20px;
       color: #ff5722;
@@ -46,83 +42,76 @@
   </style>
 </head>
 <body>
-  <h1>User Registration</h1>
-  <div id="registration-form">
-    <h2>Step 1: Enter Your Email</h2>
-    <input type="email" id="email-input" placeholder="Enter your email">
-    <button id="send-code-button">Send Code</button>
-  </div>
+  <h1>Upload a File</h1>
+  <form id="file-form">
+    <label for="email">Your Email:</label><br>
+    <input type="email" id="email" name="email" placeholder="Enter your email" required><br><br>
 
-  <div id="verification-form" class="hidden">
-    <h2>Step 2: Enter Verification Code</h2>
-    <input type="text" id="verification-code" placeholder="6-digit code">
-    <button id="verify-button">Verify</button>
-  </div>
+    <label for="file">Choose a file:</label><br>
+    <input type="file" id="file" name="file" required><br><br>
+
+    <button type="submit">Upload and Send</button>
+  </form>
 
   <p id="status-message"></p>
 
-  <script>
-    // 認証コードと状態管理
-    let generatedCode = null;
+  <!-- Firebase and EmailJS SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage.js"></script>
+  <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
 
-    // 要素取得
-    const emailInput = document.getElementById("email-input");
-    const sendCodeButton = document.getElementById("send-code-button");
-    const verificationCodeInput = document.getElementById("verification-code");
-    const verifyButton = document.getElementById("verify-button");
-    const registrationForm = document.getElementById("registration-form");
-    const verificationForm = document.getElementById("verification-form");
+  <script>
+    // Firebase設定
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Firebase初期化
+    firebase.initializeApp(firebaseConfig);
+    const storage = firebase.storage();
+
+    // EmailJS初期化
+    emailjs.init("YOUR_EMAILJS_USER_ID");
+
+    // 要素の取得
+    const fileForm = document.getElementById("file-form");
     const statusMessage = document.getElementById("status-message");
 
-    // 6桁のランダムコードを生成
-    function generateCode() {
-      return Math.floor(100000 + Math.random() * 900000).toString();
-    }
+    // フォーム送信処理
+    fileForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
 
-    // メール送信（EmailJSを使用）
-    function sendEmailCode(email, code) {
-      emailjs.init("YOUR_USER_ID"); // EmailJSのユーザーIDを設定
-      emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
-        user_email: email,
-        verification_code: code,
-      })
-      .then(() => {
-        statusMessage.textContent = "Verification code sent to your email.";
-      })
-      .catch((error) => {
-        statusMessage.textContent = "Failed to send email. Try again.";
-        console.error("Email send error:", error);
-      });
-    }
+      const email = fileForm.email.value;
+      const file = fileForm.file.files[0];
 
-    // コード送信ボタンの処理
-    sendCodeButton.addEventListener("click", () => {
-      const email = emailInput.value;
-      if (email) {
-        generatedCode = generateCode();
-        sendEmailCode(email, generatedCode);
-
-        // フォーム切り替え
-        registrationForm.classList.add("hidden");
-        verificationForm.classList.remove("hidden");
-      } else {
-        statusMessage.textContent = "Please enter a valid email.";
+      if (!email || !file) {
+        statusMessage.textContent = "Please provide an email and a file.";
+        return;
       }
-    });
 
-    // コード検証ボタンの処理
-    verifyButton.addEventListener("click", () => {
-      const enteredCode = verificationCodeInput.value;
-      if (enteredCode === generatedCode) {
-        statusMessage.textContent = "Account verified successfully!";
-        verificationForm.classList.add("hidden");
-      } else {
-        statusMessage.textContent = "Invalid code. Please try again.";
+      try {
+        // Firebaseにファイルをアップロード
+        const storageRef = storage.ref(`uploads/${file.name}`);
+        const snapshot = await storageRef.put(file);
+        const fileURL = await snapshot.ref.getDownloadURL();
+
+        // EmailJSでメール送信
+        await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+          user_email: email,
+          file_url: fileURL,
+        });
+
+        statusMessage.textContent = "File uploaded and email sent successfully!";
+      } catch (error) {
+        console.error(error);
+        statusMessage.textContent = "An error occurred. Please try again.";
       }
     });
   </script>
-
-  <!-- EmailJSライブラリ -->
-  <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
 </body>
 </html>
